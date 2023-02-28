@@ -1,0 +1,72 @@
+[
+  {
+    "name": "type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "The Earth Engine metric"
+  },
+  {
+    "name": "project_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "The GCP project where the metric was reported from"
+  },
+  {
+    "name": "metric_kind",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "The kind of the metric, this should be a delta for Earth Engine cpu/usage_time metric"
+  },
+  {
+    "name": "value_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "The data type of the metric, this should b a double for Earth Engine cpu/usage_time metric"
+  },
+  {
+    "name": "labels",
+    "type": "RECORD",
+    "mode": "REPEATED",
+    "description": "The metadata labels for the aggregated timeseries value",
+    "fields": [
+      {
+        "name": "key",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "The labels name"
+      },
+      {
+        "name": "value",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "The labels value"
+      }
+    ]
+  },
+  {
+    "name": "points",
+    "type": "RECORD",
+    "mode": "REPEATED",
+    "description": "A single data point in the time series",
+    "fields": [
+      {
+        "name": "start_time",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED",
+        "description": "The start time of the time series point"
+      },
+      {
+        "name": "end_time",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED",
+        "description": "The end time of the time series point"
+      },
+      {
+        "name": "value",
+        "type": "FLOAT64",
+        "mode": "REQUIRED",
+        "description": "The value of the time series point"
+      }
+    ]
+  }
+]
