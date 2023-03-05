@@ -2,11 +2,10 @@ package function
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"net/http"
+	"log"
 	"os"
 	"time"
+	"strconv"
 
 	monitoring "cloud.google.com/go/monitoring/apiv3"
 	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
@@ -15,6 +14,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/api/iterator"
 	"cloud.google.com/go/bigquery"
+	"github.com/cloudevents/sdk-go/v2/event"
 )
 
 type Item struct {
@@ -23,7 +23,9 @@ type Item struct {
 	Metric_Kind	string		`bigquery:"metric_kind"`
 	Value_Type	string		`bigquery:"value_type"`
 	Labels			[]Label		`bigquery:"labels"`
-	Points			[]Point	`biqquery:"points"`
+	Start_Time 	time.Time	`bigquery:"start_time"`
+	End_Time		time.Time	`bigquery:"end_time"`
+	Value				float32		`bigquery:"value"`
 }
 
 type Label struct {
@@ -31,18 +33,21 @@ type Label struct {
 	Value	string	`bigquery:"value"`
 }
 
+/*
 type Point struct {
 	Start_Time 	time.Time	`bigquery:"start_time"`
 	End_Time		time.Time	`bigquery:"end_time"`
 	Value				float32		`bigquery:"value"`
-}
+}*/
 
 func init() {
-	functions.HTTP("ReadTimeSeriesFields", readTimeSeriesFields)
+	functions.CloudEvent("ReadTimeSeriesFields", readTimeSeriesFields)
 }
 
-func readTimeSeriesFields(w http.ResponseWriter, r *http.Request) {
+func readTimeSeriesFields(ctx context.Context, e event.Event) error {
 	var projectId, tableId, datasetId string
+	var timeWindow time.Duration
+	var aggregation int64
 
 	if envProjectId := os.Getenv("PROJECTID"); envProjectId != "" {
 		projectId = envProjectId
@@ -56,26 +61,33 @@ func readTimeSeriesFields(w http.ResponseWriter, r *http.Request) {
 		datasetId = envDataSetId
 	}
 
-	ctx := context.Background()
+	if envTimeWindow := os.Getenv("TIMEWINDOW"); envTimeWindow != "" {
+		timeWindow, _ = time.ParseDuration(envTimeWindow)
+	}
+
+	if envAggregation := os.Getenv("AGGREGATION"); envAggregation != "" {
+		aggregation, _ = strconv.ParseInt(envAggregation, 10, 64)
+	}
+
 	client, err := monitoring.NewMetricClient(ctx)
 
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Unable to create new metric client: %v", err)
+		return nil // Returning nil tells the function that it shouldn't retry
 	}
 
 	bqClient, err := bigquery.NewClient(ctx, projectId)
 
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Unable to create new BigQuery client: %v", err)
+		return nil // Returning nil tells the function that it shouldn't retry
 	}
 
 	defer bqClient.Close()
 	defer client.Close()
 
 	table := bqClient.Dataset(datasetId).Table(tableId)
-	startTime := time.Now().UTC().Add(time.Minute * -20)
+	startTime := time.Now().UTC().Add(-1 * timeWindow)
 	endTime := time.Now().UTC()
 
 	req := &monitoringpb.ListTimeSeriesRequest{
@@ -92,7 +104,7 @@ func readTimeSeriesFields(w http.ResponseWriter, r *http.Request) {
 		Aggregation: &monitoringpb.Aggregation{
 			PerSeriesAligner: monitoringpb.Aggregation_ALIGN_SUM,
 			AlignmentPeriod: &duration.Duration{
-				Seconds: 60,
+				Seconds: aggregation,
 			},
 		},
 	}
@@ -103,15 +115,14 @@ func readTimeSeriesFields(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		resp, err := it.Next()
-
+		
 		if err == iterator.Done {
 			break
 		}
 
 		if err != nil {
-			fmt.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			break
+			log.Printf("Error getting next value in metric api response: %v", err)
+			return err
 		}
 
 		var labels []Label
@@ -122,14 +133,14 @@ func readTimeSeriesFields(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		var points []Point
+		/*var points []Point
 		for _, value := range resp.GetPoints() {
 			points = append(points, Point{
 				Start_Time: time.Unix(value.GetInterval().StartTime.Seconds, 0),
 				End_Time: time.Unix(value.GetInterval().EndTime.Seconds, 0),
 				Value: float32(value.Value.GetDoubleValue()),
 			})
-		}
+		}*/
 
 		row := &Item{
 			Type: resp.GetMetric().GetType(),
@@ -137,7 +148,10 @@ func readTimeSeriesFields(w http.ResponseWriter, r *http.Request) {
 			Metric_Kind: resp.MetricKind.String(),
 			Value_Type: resp.ValueType.String(),
 			Labels: labels,
-			Points: points,
+			//Points: points,
+			Start_Time: time.Unix(resp.GetPoints()[0].GetInterval().StartTime.Seconds, 0),
+			End_Time: time.Unix(resp.GetPoints()[0].GetInterval().EndTime.Seconds, 0),
+			Value: float32(resp.GetPoints()[0].Value.GetDoubleValue()),
 		}
 
 		rows = append(rows, row)
@@ -149,12 +163,15 @@ func readTimeSeriesFields(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if multiErr, ok := err.(bigquery.PutMultiError); ok {
 			for _, putErr := range multiErr {
-				fmt.Printf("failed to insert row %d with err: %v \n", putErr.RowIndex, putErr.Error())
+				log.Printf("failed to insert row %d with err: %v \n", putErr.RowIndex, putErr.Error())
 			}
+		} else {
+			log.Printf("Error inserting data: %v", err)
+
+			return err
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, "success")
+	log.Printf("EE Metric Collector completd successfully")
+	return nil
 }

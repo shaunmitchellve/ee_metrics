@@ -1,4 +1,4 @@
-module github.com/shaunmitchellve/ce-ee-metrics
+module github.com/shaunmitchellve/ee-metrics
 
 go 1.19
 

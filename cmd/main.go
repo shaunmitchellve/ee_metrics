@@ -5,7 +5,7 @@ import (
 	"os"
 
 	// Blank-import the function package so the init() runs
-	_ "github.com/shaunmitchellve/ce-ee-metrics"
+	_ "github.com/shaunmitchellve/ee-metrics"
 	"github.com/GoogleCloudPlatform/functions-framework-go/funcframework"
 )
 

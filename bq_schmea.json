@@ -44,29 +44,21 @@
     ]
   },
   {
-    "name": "points",
-    "type": "RECORD",
-    "mode": "REPEATED",
-    "description": "A single data point in the time series",
-    "fields": [
-      {
-        "name": "start_time",
-        "type": "TIMESTAMP",
-        "mode": "REQUIRED",
-        "description": "The start time of the time series point"
-      },
-      {
-        "name": "end_time",
-        "type": "TIMESTAMP",
-        "mode": "REQUIRED",
-        "description": "The end time of the time series point"
-      },
-      {
-        "name": "value",
-        "type": "FLOAT64",
-        "mode": "REQUIRED",
-        "description": "The value of the time series point"
-      }
-    ]
+    "name": "start_time",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "The start time of the time series point"
+  },
+  {
+    "name": "end_time",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "The end time of the time series point"
+  },
+  {
+    "name": "value",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The value of the time series point"
   }
 ]
