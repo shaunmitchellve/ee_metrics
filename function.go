@@ -7,7 +7,7 @@ import (
 	"time"
 	"strconv"
 
-	monitoring "cloud.google.com/go/monitoring/apiv3"
+	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 	"github.com/golang/protobuf/ptypes/duration"
@@ -26,6 +26,7 @@ type Item struct {
 	Start_Time 	time.Time	`bigquery:"start_time"`
 	End_Time		time.Time	`bigquery:"end_time"`
 	Value				float32		`bigquery:"value"`
+	Export_Time	time.Time	`bigquery:"export_time"`
 }
 
 type Label struct {
@@ -152,6 +153,7 @@ func readTimeSeriesFields(ctx context.Context, e event.Event) error {
 			Start_Time: time.Unix(resp.GetPoints()[0].GetInterval().StartTime.Seconds, 0),
 			End_Time: time.Unix(resp.GetPoints()[0].GetInterval().EndTime.Seconds, 0),
 			Value: float32(resp.GetPoints()[0].Value.GetDoubleValue()),
+			Export_Time: time.Now(),
 		}
 
 		rows = append(rows, row)

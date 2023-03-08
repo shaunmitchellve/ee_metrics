@@ -3,6 +3,7 @@
 gcloud functions deploy ee-collect-metrics \
 --region=us-central1 \
 --gen2 \
+--project=ce-monitoring \
 --runtime=go119 \
 --source=. \
 --entry-point=ReadTimeSeriesFields \

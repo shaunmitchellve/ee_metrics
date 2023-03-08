@@ -60,5 +60,11 @@
     "type": "FLOAT",
     "mode": "REQUIRED",
     "description": "The value of the time series point"
+  },
+  {
+    "name": "export_time",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "The timestamp of when the record was added"
   }
 ]
