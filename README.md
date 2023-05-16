@@ -6,6 +6,95 @@
 - [Earth Engine Monitoring Metric](https://cloud.google.com/monitoring/api/metrics_gcp#gcp-earthengine)
 - [Monitoring API project time series](https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list)
 
+## Setup
+
+1. You need to make sure the following APIs are enabled:
+
+- cloudscheduler.googleapis.com
+- bigquery.googleapis.com
+- eventarc.googleapis.com
+- cloudfunctions.googleapis.com
+- run.googleapis.com
+
+This setup assumes it's being run in the same project as your centralized Cloud Monitoring for Earth Engine. Basically, all EE metrics are being written to this project metwrics explorer.
+
+```
+gcloud services enable SERVICE
+```
+
+2. Create 2 Service Accounts:
+
+We need a Cloud Function SA and a EventArc SA:
+
+```
+gcloud iam service-accounts create CLOUD_FUNCTION_SA_NAME
+gcloud iam service-accounts create EVENTARC_SA_NAME
+```
+
+3. Let's grant the correct permissions:
+
+```
+gcloud projects add-iam-policy-binding PROJECT_ID \
+--member="serviceAccount:CLOUD_FUNCTION_SA_NAME@PROJECT_ID.iam.gserviceaccount.com" \
+--role="roles/monitoring.viewer"
+
+gcloud projects add-iam-policy-binding PROJECT_ID \
+--member="serviceAccount:EVENTARC_SA_NAME@PROJECT_ID.iam.gserviceaccount.com" \
+--role="roles/run.invoker"
+```
+
+4. Now create the BigQuery Dataset and Table (If you already have a BQ dataset, you can skip the dataset creation):
+
+```
+bq --location=LOCATION_REGION mk \
+--dataset \
+PROJECT_ID:DATASET_ID
+
+bq mk \
+--table \
+PROJECT_ID:DATASET_ID.TABLE_ID \
+./bq_schema.json
+```
+
+5. More permissions needed now, follow the instructions in these docs [https://cloud.google.com/bigquery/docs/control-access-to-resources-iam#grant_access_to_a_dataset](https://cloud.google.com/bigquery/docs/control-access-to-resources-iam#grant_access_to_a_dataset)
+
+- Grant `READER` on the dataset to the CLOUD_FUNCTION_SA_NAME@PROJECT_ID.iam.gserviceaccount.com service account
+- Grant `OWNER` on the table to the CLOUD_FUNCTION_SA_NAME@PROJECT_ID.iam.gserviceaccount.com service account.
+
+6. Let's create the PubSub topic
+
+```
+gcloud pubsub topics create TOPIC
+```
+
+7. Now, we can edit the `deploy.sh` file with the correct information from above and run the script to deploy the cloud function. Edite the file and adjust the variables at the top of the file.
+
+- PROJECT_ID= PROJECT_ID
+- PUBSUB_TOPIC= PUBSUB-TOPIC-NAME
+- FUNCTION_SA= CLOUD-FUNCTION-SA-ACCOUNT - Make sure this is fully qualified email address
+- TRIGGER_SA= EVENTARC-SA-ACCOUNT - Make sure this is fully qualified email address
+- DATASET_ID= BIGQUERY-DATASET-ID
+- TABLE_ID= BIGQUERY-TABLE-ID
+
+Execute the shell script.
+
+```
+./deploy.sh
+```
+
+8. Last we need to create a Cloud SCheduler to run the function
+
+```
+gcloud scheduler jobs create pubsub JOB-NAME \
+--location=LOCATION_REGION \
+--schedule="*/30 * * * *" \
+--topic=PUBSUB_TOPIC \
+--message-body="Run"
+--time-zone="UTC-5"
+```
+
+That should be it. I may have missed something so do let me know if something doesn't work properly.
+
 ## Metrics Overview
 
 Google Clouds Monitoring system is a time series based database that stores different types of metrics. For the purposes of this document the metric that is being used is the earthengine.googleapis.com/project/cpu/usage_time. This metric is saved as a double which represents the number of EECUseconds (Earth Engine Compute Units). The metric is DELTA metric which represents the number of EECUs that were used since the last record was saved. For example:
