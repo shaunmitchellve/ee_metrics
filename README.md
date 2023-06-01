@@ -15,6 +15,8 @@
 - eventarc.googleapis.com
 - cloudfunctions.googleapis.com
 - run.googleapis.com
+- cloudbuild.googleapis.com
+- artifactregistry.googleapis.com
 
 This setup assumes it's being run in the same project as your centralized Cloud Monitoring for Earth Engine. Basically, all EE metrics are being written to this project metwrics explorer.
 
