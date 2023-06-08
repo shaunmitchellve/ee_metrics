@@ -91,8 +91,8 @@ gcloud scheduler jobs create pubsub JOB-NAME \
 --location=LOCATION_REGION \
 --schedule="*/30 * * * *" \
 --topic=PUBSUB_TOPIC \
---message-body="Run"
---time-zone="UTC-5"
+--message-body="Run" \
+--time-zone="America/Detroit"
 ```
 
 That should be it. I may have missed something so do let me know if something doesn't work properly.
