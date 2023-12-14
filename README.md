@@ -118,7 +118,7 @@ As of the authoring of this document, Google Earth Engine does not export its me
 
 Since there is too much raw data to properly analyze, we are required to group the data and align the data into a time period. The grouping will be the metadata “workload type”, for obvious reasons mentioned above.
 
-The alignment period needs to be small enough as to be able to provide any reasonable rollup in a detailed report and at the same time be able to be aggregated into a billing cycle. Since we don’t know the exact level of details and billing cycle it’s recommended to keep the alignment period at a lower level, in this case I’m recommending a 60 seconds / 1 min alignment period. With using an alignment period we need to choose an aligner that will return a single value for that time period, since we want to know the total number of EECUs used in that time period we will be using the SUM aligner.
+The alignment period needs to be small enough as to be able to provide any reasonable rollup in a detailed report and at the same time be able to be aggregated into a billing cycle. Since we don’t know the exact level of details and billing cycle it’s recommended to keep the alignment period at a low enough level (initial deploy is setup to 30m ins). With using an alignment period we need to choose an aligner that will return a single value for that time period, since we want to know the total number of EECUs used in that time period we will be using the SUM aligner.
 
 ## Reducers
 
