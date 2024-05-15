@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/bigquery v1.50.0
 	cloud.google.com/go/monitoring v1.13.0
 	github.com/GoogleCloudPlatform/functions-framework-go v1.6.1
-	github.com/cloudevents/sdk-go/v2 v2.6.1
+	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/golang/protobuf v1.5.3
 	google.golang.org/api v0.114.0
 )
